@@ -21,13 +21,12 @@ public class WorkerAuthorizationInformation {
     private boolean headerTokenAuth;
     private boolean requestParamBasicAuth;
 
-    @Builder(builderMethodName = "noAuthBuilder", builderClassName = "noAuthBuilder")
+    @Builder(builderMethodName = "noAuthBuilder", builderClassName = "NoAuthBuilder")
     public WorkerAuthorizationInformation() {
         this.hasAuth = false;
     }
 
-
-    @Builder(builderMethodName = "headerTokenAuthBuilder", builderClassName = "fromHeaderTokenAuthBuilder")
+    @Builder(builderMethodName = "headerTokenAuthBuilder", builderClassName = "HeaderTokenAuthBuilder")
     public WorkerAuthorizationInformation(String headerTokenFieldName, String headerTokenRefreshFieldName, String outdoorEP, String outdoorRefreshEP) {
         this.hasAuth = true;
         this.headerTokenAuth = true;
@@ -37,7 +36,7 @@ public class WorkerAuthorizationInformation {
         this.outdoorRefreshEP = outdoorRefreshEP;
     }
 
-    @Builder(builderMethodName = "requestParamBasicAuthBuilder", builderClassName = "fromRequestParamBasicAuthBuilder")
+    @Builder(builderMethodName = "requestParamBasicAuthBuilder", builderClassName = "RequestParamBasicAuthBuilder")
     public WorkerAuthorizationInformation(String requestParamUsernameFieldName, String requestParamPasswordFieldName, String outdoorEP) {
         this.hasAuth = true;
         this.requestParamBasicAuth = true;
