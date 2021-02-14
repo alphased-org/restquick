@@ -1,6 +1,7 @@
 package com.alphased.restquick.crsw.controller;
 
-import com.alphased.restquick.crsw.exception.*;
+import com.alphased.restquick.crsw.exception.CRSWException;
+import com.alphased.restquick.crsw.model.Response;
 import com.alphased.restquick.crsw.processor.EndPointProcessor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -14,29 +15,28 @@ public class CRSWController {
 
     private final EndPointProcessor endPointProcessor;
 
-    private String process(String ownerId, HttpServletRequest httpServletRequest) throws DifferentOwnerIdException, EndPointProcessorException, OutdoorAuthFailedException, OperationNotFoundException, NotSupportedMethodException {
+    private Response process(String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
         return endPointProcessor.apply(ownerId, httpServletRequest);
     }
 
     @GetMapping(path = "/{ownerId}/*/*", consumes = MediaType.ALL_VALUE, produces = MediaType.ALL_VALUE)
-    public String getEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws DifferentOwnerIdException, EndPointProcessorException, OutdoorAuthFailedException, OperationNotFoundException, NotSupportedMethodException {
+    public Response getEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
         return process(ownerId, httpServletRequest);
     }
 
     @PutMapping(path = "/{ownerId}/*/*", consumes = MediaType.ALL_VALUE, produces = MediaType.ALL_VALUE)
-    public String putEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws DifferentOwnerIdException, EndPointProcessorException, OutdoorAuthFailedException, OperationNotFoundException, NotSupportedMethodException {
+    public Response putEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
         return process(ownerId, httpServletRequest);
     }
 
     @PostMapping(path = "/{ownerId}/*/*", consumes = MediaType.ALL_VALUE, produces = MediaType.ALL_VALUE)
-    public String postEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws EndPointProcessorException, DifferentOwnerIdException, OutdoorAuthFailedException, OperationNotFoundException, NotSupportedMethodException {
+    public Response postEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
         return process(ownerId, httpServletRequest);
     }
 
     @DeleteMapping(path = "/{ownerId}/*/*", consumes = MediaType.ALL_VALUE, produces = MediaType.ALL_VALUE)
-    public String deleteEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws DifferentOwnerIdException, EndPointProcessorException, OutdoorAuthFailedException, OperationNotFoundException, NotSupportedMethodException {
+    public Response deleteEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
         return process(ownerId, httpServletRequest);
     }
-
 
 }

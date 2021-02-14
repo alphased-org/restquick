@@ -3,13 +3,16 @@ package com.alphased.restquick.crsw.processor;
 import com.alphased.restquick.crsw.CRSWContainer;
 import com.alphased.restquick.crsw.exception.*;
 import com.alphased.restquick.crsw.filter.AuthorizationFilter;
+import com.alphased.restquick.crsw.model.Response;
 import com.alphased.restquick.crsw.model.WorkerAuthorizationInformation;
+import com.alphased.restquick.crsw.util.ResponseDispatcher;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
@@ -32,27 +35,38 @@ public class EndPointProcessor {
     private final CRSWContainer crswContainer;
     private final AuthorizationFilter authorizationFilter;
 
-    public String apply(String ownerId, HttpServletRequest httpServletRequest) throws DifferentOwnerIdException, EndPointProcessorException, OutdoorAuthFailedException, NotSupportedMethodException, OperationNotFoundException {
+    public Response apply(String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
         checkOwnerId(ownerId);
         String requestPath = httpServletRequest.getRequestURI().substring(0, ownerId.length() + 1);
         String method = httpServletRequest.getMethod();
         OpenAPI openAPI = crswContainer.getOpenAPI();
 
-        if (crswContainer.getWorkerAuthorizationInformation().isHasAuth()) {
-            if (!checkAuth(crswContainer.getWorkerAuthorizationInformation())) {
-                return "Unauthorized.";
-            }
-        }
+        if (checkAuthorization()) return ResponseDispatcher.doAction(HttpStatus.UNAUTHORIZED, null);
 
         Operation operation = findOperation(requestPath, method, openAPI);
         StrategyMapping.STRATEGY.get(method).accept(operation, httpServletRequest);
         // TODO: DoAction for operation. Response Type will be String and Json Format.
+
+
+
         // TODO: checkResponse method will be create there also comparing with operation response modal.
+
+        Object object = new Object();
         if (operation != null) {
             throw new EndPointProcessorException("asd");
         } else {
-            return "true";
+            return ResponseDispatcher.doAction(HttpStatus.OK, object);
         }
+    }
+
+    private boolean checkAuthorization() throws OutdoorAuthFailedException {
+        WorkerAuthorizationInformation workerAuthorizationInformation = crswContainer.getWorkerAuthorizationInformation();
+        if (workerAuthorizationInformation.isHasAuth()) {
+            if (!checkAuth(workerAuthorizationInformation)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Operation findOperation(String requestPath, String method, OpenAPI openAPI) throws NotSupportedMethodException, OperationNotFoundException {
