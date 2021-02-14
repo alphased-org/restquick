@@ -46,7 +46,8 @@ public class EndPointProcessor {
 
         Operation operation = findOperation(requestPath, method, openAPI);
         StrategyMapping.STRATEGY.get(method).accept(operation, httpServletRequest);
-
+        // TODO: DoAction for operation. Response Type will be String and Json Format.
+        // TODO: checkResponse method will be create there also comparing with operation response modal.
         if (operation != null) {
             throw new EndPointProcessorException("asd");
         } else {
