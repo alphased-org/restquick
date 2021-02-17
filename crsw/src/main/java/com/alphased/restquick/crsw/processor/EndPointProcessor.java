@@ -41,13 +41,11 @@ public class EndPointProcessor {
         String method = httpServletRequest.getMethod();
         OpenAPI openAPI = crswContainer.getOpenAPI();
 
-        if (checkAuthorization()) return ResponseDispatcher.doAction(HttpStatus.UNAUTHORIZED, null);
+        if (checkAuthorization()) return ResponseDispatcher.createResponse(HttpStatus.UNAUTHORIZED, null);
 
         Operation operation = findOperation(requestPath, method, openAPI);
         StrategyMapping.STRATEGY.get(method).accept(operation, httpServletRequest);
         // TODO: DoAction for operation. Response Type will be String and Json Format.
-
-
 
         // TODO: checkResponse method will be create there also comparing with operation response modal.
 
@@ -55,7 +53,7 @@ public class EndPointProcessor {
         if (operation != null) {
             throw new EndPointProcessorException("asd");
         } else {
-            return ResponseDispatcher.doAction(HttpStatus.OK, object);
+            return ResponseDispatcher.createResponse(HttpStatus.OK, object);
         }
     }
 

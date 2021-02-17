@@ -6,8 +6,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.function.Function;
-
 @Component
 @Log4j2
 public class AuthorizationFilter {

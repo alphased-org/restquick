@@ -1,5 +1,6 @@
 package com.alphased.restquick.crsw;
 
+import com.alphased.restquick.crsw.exception.LoadErrorCRSWContainerException;
 import com.alphased.restquick.crsw.model.WorkerInformation;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.boot.SpringApplication;
@@ -34,7 +35,7 @@ public class CRSWApplication {
     }
 
     @Bean
-    public CRSWContainer crswContainer() {
+    public CRSWContainer crswContainer() throws LoadErrorCRSWContainerException {
         return new CRSWContainer(workerInformation);
     }
 }

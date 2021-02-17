@@ -1,5 +1,6 @@
 package com.alphased.restquick.crsw;
 
+import com.alphased.restquick.crsw.exception.LoadErrorCRSWContainerException;
 import com.alphased.restquick.crsw.model.WorkerAuthorizationInformation;
 import com.alphased.restquick.crsw.model.WorkerInformation;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -9,14 +10,28 @@ import io.swagger.v3.parser.core.models.ParseOptions;
 public class CRSWContainer {
 
     private final WorkerInformation workerInformation;
-    private final WorkerAuthorizationInformation workerAuthorizationInformation;
-    private final OpenAPI openAPI;
 
-    public CRSWContainer(WorkerInformation workerInformation) {
+    private WorkerAuthorizationInformation workerAuthorizationInformation;
+    private OpenAPI openAPI;
+
+    public CRSWContainer(WorkerInformation workerInformation) throws LoadErrorCRSWContainerException {
         this.workerInformation = workerInformation;
-        openAPI = fetchOpenApiFromOwnerId(workerInformation.getOwnerId());
-        workerAuthorizationInformation = fetchAuthorizationInformation(workerInformation.getOwnerId());
+        createCRSWContainer(workerInformation);
     }
+
+    public void reloadContainer() throws LoadErrorCRSWContainerException {
+        createCRSWContainer(workerInformation);
+    }
+
+    private void createCRSWContainer(WorkerInformation workerInformation) throws LoadErrorCRSWContainerException {
+        try {
+            openAPI = fetchOpenApiFromOwnerId(workerInformation.getOwnerId());
+            workerAuthorizationInformation = fetchAuthorizationInformation(workerInformation.getOwnerId());
+        } catch (Exception e) {
+            throw new LoadErrorCRSWContainerException(e.getMessage());
+        }
+    }
+
 
     private WorkerAuthorizationInformation fetchAuthorizationInformation(String ownerId) {
         return WorkerAuthorizationInformation.noAuthBuilder().build();
