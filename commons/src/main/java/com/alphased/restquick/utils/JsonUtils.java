@@ -1,10 +1,14 @@
 package com.alphased.restquick.utils;
 
 import com.alphased.restquick.exception.JsonUtilsException;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.SerializableString;
 import com.fasterxml.jackson.core.io.CharacterEscapes;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -15,6 +19,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 public class JsonUtils {
+
+    public static JsonNode jsonNodeCreator(String json) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.getFactory().setCharacterEscapes(new HTMLCharacterEscapes());
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return mapper.readTree(json);
+    }
 
     public static <T> String sanitize(String json, Class<T> valueType) throws Exception {
         Assert.notNull(json, "json cannot be null.");
@@ -49,6 +60,7 @@ public class JsonUtils {
         Assert.notNull(value, "value cannot be null.");
         ObjectMapper mapper = new ObjectMapper();
         mapper.getFactory().setCharacterEscapes(new HTMLCharacterEscapes());
+        mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
         String json = null;
         try {
             json = mapper.writeValueAsString(value);

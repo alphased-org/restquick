@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import static org.springframework.http.HttpStatus.OK;
+import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,15 +20,15 @@ public class CRSWManagerController {
 
     private final CRSWContainer crswContainer;
 
-    @GetMapping(path = "/apiDetails/get", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(path = "/apiDetails/get", produces = MediaType.APPLICATION_JSON_VALUE)
     public Response getContainerDetails() throws Exception {
-        return ResponseDispatcher.createResponse(OK, JsonUtils.mergedObjectSerialize(crswContainer.getOpenAPI(), crswContainer.getWorkerAuthorizationInformation()));
+        return ResponseDispatcher.successResponse(JsonUtils.mergedObjectSerialize(crswContainer.getOpenAPI(), crswContainer.getWorkerAuthorizationInformation()));
     }
 
-    @PostMapping(path = "/apiDetails/reload", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/apiDetails/reload", produces = MediaType.APPLICATION_JSON_VALUE)
     public Response reloadContainer() throws Exception {
         crswContainer.reloadContainer();
-        return ResponseDispatcher.createResponse(OK, null);
+        return ResponseDispatcher.successResponse(null);
     }
 
 }

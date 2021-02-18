@@ -37,11 +37,12 @@ public class EndPointProcessor {
 
     public Response apply(String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
         checkOwnerId(ownerId);
-        String requestPath = httpServletRequest.getRequestURI().substring(0, ownerId.length() + 1);
+        String requestPath = httpServletRequest.getRequestURI().substring(ownerId.length() + 5);
         String method = httpServletRequest.getMethod();
         OpenAPI openAPI = crswContainer.getOpenAPI();
 
-        if (checkAuthorization()) return ResponseDispatcher.createResponse(HttpStatus.UNAUTHORIZED, null);
+        if (checkAuthorization())
+            return ResponseDispatcher.failureResponse(HttpStatus.UNAUTHORIZED, null, new UnAuthorizedException());
 
         Operation operation = findOperation(requestPath, method, openAPI);
         StrategyMapping.STRATEGY.get(method).accept(operation, httpServletRequest);
@@ -49,12 +50,8 @@ public class EndPointProcessor {
 
         // TODO: checkResponse method will be create there also comparing with operation response modal.
 
-        Object object = new Object();
-        if (operation != null) {
-            throw new EndPointProcessorException("asd");
-        } else {
-            return ResponseDispatcher.createResponse(HttpStatus.OK, object);
-        }
+        Map body = Map.of("asd", "asd");
+        return ResponseDispatcher.successResponse(body);
     }
 
     private boolean checkAuthorization() throws OutdoorAuthFailedException {
@@ -68,17 +65,24 @@ public class EndPointProcessor {
     }
 
     private Operation findOperation(String requestPath, String method, OpenAPI openAPI) throws NotSupportedMethodException, OperationNotFoundException {
-        Operation operation;
-        if (method.equals(GET)) {
-            operation = openAPI.getPaths().get(requestPath).getGet();
-        } else if (method.equals(PUT)) {
-            operation = openAPI.getPaths().get(requestPath).getPut();
-        } else if (method.equals(POST)) {
-            operation = openAPI.getPaths().get(requestPath).getPost();
-        } else if (method.equals(DELETE)) {
-            operation = openAPI.getPaths().get(requestPath).getDelete();
-        } else {
-            throw new NotSupportedMethodException();
+        Operation operation = null;
+        try {
+            if (method.equals(GET)) {
+                operation = openAPI.getPaths().get(requestPath).getGet();
+            } else if (method.equals(PUT)) {
+                operation = openAPI.getPaths().get(requestPath).getPut();
+            } else if (method.equals(POST)) {
+                operation = openAPI.getPaths().get(requestPath).getPost();
+            } else if (method.equals(DELETE)) {
+                operation = openAPI.getPaths().get(requestPath).getDelete();
+            } else {
+                throw new NotSupportedMethodException();
+            }
+        } catch (Exception e) {
+            if (e instanceof NotSupportedMethodException) {
+                throw e;
+            }
+            log.debug(e.getMessage());
         }
         if (operation == null) {
             throw new OperationNotFoundException();
@@ -92,7 +96,7 @@ public class EndPointProcessor {
 
     private void checkOwnerId(String ownerId) throws DifferentOwnerIdException {
         if (crswContainer.getWorkerInformation().getOwnerId().equals(ownerId)) {
-            throw new DifferentOwnerIdException("OwnerId not equals.");
+            throw new DifferentOwnerIdException();
         }
     }
 

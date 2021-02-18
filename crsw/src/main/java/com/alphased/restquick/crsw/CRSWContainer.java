@@ -40,7 +40,50 @@ public class CRSWContainer {
     private OpenAPI fetchOpenApiFromOwnerId(String ownerId) {
         ParseOptions parseOptions = new ParseOptions();
         parseOptions.setResolve(true);
-        return new OpenAPIV3Parser().readContents("").getOpenAPI();
+        return new OpenAPIV3Parser().readContents("openapi: 3.0.2\n" +
+                "info:\n" +
+                "    title: New API\n" +
+                "    version: 1.0.0\n" +
+                "    description: A brand new API with no content.  Go nuts!\n" +
+                "servers:\n" +
+                "    -\n" +
+                "        url: 'http://localhost:8080'\n" +
+                "        description: ''\n" +
+                "paths:\n" +
+                "    /personTest:\n" +
+                "        servers:\n" +
+                "            -\n" +
+                "                url: 'localhost:8080'\n" +
+                "                description: ''\n" +
+                "        get:\n" +
+                "            parameters:\n" +
+                "                -\n" +
+                "                    name: id\n" +
+                "                    description: ''\n" +
+                "                    schema:\n" +
+                "                        type: string\n" +
+                "                    in: query\n" +
+                "                    required: true\n" +
+                "            responses:\n" +
+                "                '200':\n" +
+                "                    content:\n" +
+                "                        application/json:\n" +
+                "                            schema:\n" +
+                "                                $ref: '#/components/schemas/Person'\n" +
+                "components:\n" +
+                "    schemas:\n" +
+                "        Person:\n" +
+                "            title: Root Type for Person\n" +
+                "            description: ''\n" +
+                "            type: object\n" +
+                "            properties:\n" +
+                "                name:\n" +
+                "                    type: string\n" +
+                "                lastname:\n" +
+                "                    type: string\n" +
+                "            example:\n" +
+                "                name: mustafa\n" +
+                "                lastname: köse").getOpenAPI();
     }
 
     public WorkerInformation getWorkerInformation() {

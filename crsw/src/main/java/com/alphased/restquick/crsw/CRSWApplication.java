@@ -2,10 +2,14 @@ package com.alphased.restquick.crsw;
 
 import com.alphased.restquick.crsw.exception.LoadErrorCRSWContainerException;
 import com.alphased.restquick.crsw.model.WorkerInformation;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
 import java.time.Instant;
 
@@ -38,4 +42,14 @@ public class CRSWApplication {
     public CRSWContainer crswContainer() throws LoadErrorCRSWContainerException {
         return new CRSWContainer(workerInformation);
     }
+
+    @Bean
+    @Primary
+    public ObjectMapper objectMapper() {
+        JavaTimeModule module = new JavaTimeModule();
+        return new ObjectMapper()
+                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+                .registerModule(module);
+    }
+
 }

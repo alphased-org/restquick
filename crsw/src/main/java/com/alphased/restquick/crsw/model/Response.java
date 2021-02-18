@@ -14,6 +14,8 @@ public class Response {
     private int code;
     private Object body;
     private String bodyType;
+    private String exceptionType;
+    private String requestPath;
 
     @Builder(builderMethodName = "successResponseBuilder", builderClassName = "SuccessResponseBuilder")
     public Response(@Nullable Object body) {
@@ -26,11 +28,13 @@ public class Response {
     }
 
     @Builder(builderMethodName = "failedResponseBuilder", builderClassName = "FailedResponseBuilder")
-    public Response(int code, String failedMessage, @Nullable Object body) {
+    public Response(int code, String failedMessage, @Nullable Object body, String exceptionType, String requestPath) {
         this.success = false;
         this.code = code;
         this.failedMessage = failedMessage;
         this.body = body;
+        this.exceptionType = exceptionType;
+        this.requestPath = requestPath;
         if (body != null) {
             this.bodyType = body.getClass().getSimpleName();
         }

@@ -1,45 +1,88 @@
 package com.alphased.restquick.crsw.util;
 
 import com.alphased.restquick.crsw.model.Response;
-import com.alphased.restquick.utils.JsonUtils;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.annotation.Nullable;
+import javax.servlet.RequestDispatcher;
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class ResponseDispatcher {
 
-    private static final Map<HttpStatus.Series, BiFunction<Object, HttpStatus, Response>> statusStrategyMap = new HashMap<>();
+    private static final Map<Class<? extends InternalResponse>, Function<InternalResponse, Response>> statusStrategyMap = new HashMap<>();
 
     static {
-        statusStrategyMap.put(HttpStatus.Series.SUCCESSFUL, (body, httpStatus) -> {
-            if (body != null) {
-                if (!(body instanceof String)) {
-                    try {
-                        body = JsonUtils.serialize(body);
-                    } catch (Exception e) {
-                        return Response.failedResponseBuilder().code(HttpStatus.INTERNAL_SERVER_ERROR.value()).failedMessage("Operation success but serialize problem detected.").build();
-                    }
-                }
-            }
-            return Response.successResponseBuilder().body(body).build();
+        statusStrategyMap.put(SuccessResponse.class, (internalResponse) -> {
+            SuccessResponse successResponse = (SuccessResponse) internalResponse;
+            return Response.successResponseBuilder().body(successResponse.getBody()).build();
         });
-        statusStrategyMap.put(HttpStatus.Series.CLIENT_ERROR, (body, httpStatus) -> Response.failedResponseBuilder().body(body).code(httpStatus.value()).failedMessage(httpStatus.getReasonPhrase()).build());
-        statusStrategyMap.put(HttpStatus.Series.SERVER_ERROR, (body, httpStatus) -> Response.failedResponseBuilder().body(body).code(httpStatus.value()).failedMessage(httpStatus.getReasonPhrase()).build());
+        statusStrategyMap.put(FailureResponse.class, (internalResponse) -> {
+            FailureResponse failureResponse = (FailureResponse) internalResponse;
+            return Response.failedResponseBuilder()
+                    .body(failureResponse.getBody())
+                    .code(failureResponse.getCode())
+                    .failedMessage(failureResponse.getFailedMessage())
+                    .exceptionType(failureResponse.getExceptionType())
+                    .requestPath(failureResponse.getRequestPath())
+                    .build();
+        });
     }
 
-    private static Response applyStrategy(HttpStatus httpStatus, Object body) {
-        HttpStatus.Series series = HttpStatus.Series.resolve(httpStatus.value());
-        return statusStrategyMap.getOrDefault(series, (_body, _httpStatus) -> Response.successResponseBuilder().body(body).build()).apply(body, httpStatus);
+    @SneakyThrows
+    private static Response applyStrategy(InternalResponse internalResponse) {
+        return statusStrategyMap.getOrDefault(Class.forName(internalResponse.getClass().getName()), (_internalResponse) -> Response.successResponseBuilder().body(internalResponse.getBody()).build()).apply(internalResponse);
     }
 
-    public static Response createResponse(HttpStatus httpStatus, @Nullable Object body) {
-        return applyStrategy(httpStatus, body);
+    public static Response successResponse(@Nullable Object body) {
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+        SuccessResponse successResponse = SuccessResponse.builder()
+                .body(body)
+                .code(HttpStatus.OK.value())
+                .requestPath(request.getRequestURI())
+                .build();
+        return applyStrategy(successResponse);
     }
 
-    public static Response createResponse(HttpStatus httpStatus, @Nullable String jsonBody) {
-        return applyStrategy(httpStatus, jsonBody);
+    public static Response failureResponse(HttpStatus httpStatus, @Nullable Object body, @Nullable Exception e) {
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+        FailureResponse failureResponse = FailureResponse.builder()
+                .exceptionType(e.getClass().getName())
+                .body(body)
+                .failedMessage(e.getMessage() != null ? e.getMessage() : httpStatus.getReasonPhrase())
+                .requestPath(request.getAttribute(RequestDispatcher.FORWARD_REQUEST_URI).toString())
+                .code(httpStatus.value())
+                .build();
+        return applyStrategy(failureResponse);
+    }
+
+    @EqualsAndHashCode(callSuper = true)
+    @Data
+    @SuperBuilder
+    private static class SuccessResponse extends InternalResponse {
+
+    }
+
+    @EqualsAndHashCode(callSuper = true)
+    @Data
+    @SuperBuilder
+    private static class FailureResponse extends InternalResponse {
+        private String exceptionType;
+        private String failedMessage;
+    }
+
+    @Getter
+    @Setter
+    @SuperBuilder
+    private static abstract class InternalResponse {
+        private int code;
+        private Object body;
+        private String requestPath;
     }
 }
