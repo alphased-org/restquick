@@ -16,27 +16,27 @@ public class CRSWController {
 
     private final EndPointProcessor endPointProcessor;
 
-    private Response process(String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
+    private Response process(String ownerId, HttpServletRequest httpServletRequest) throws Exception {
         return endPointProcessor.apply(ownerId, httpServletRequest);
     }
 
     @GetMapping(path = "/**", consumes = MediaType.ALL_VALUE)
-    public Response getEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
+    public Response getEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws Exception {
         return process(ownerId, httpServletRequest);
     }
 
     @PutMapping(path = "/**", consumes = MediaType.ALL_VALUE)
-    public Response putEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
+    public Response putEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws Exception {
         return process(ownerId, httpServletRequest);
     }
 
     @PostMapping(path = "/**", consumes = MediaType.ALL_VALUE)
-    public Response postEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
+    public Response postEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws Exception {
         return process(ownerId, httpServletRequest);
     }
 
     @DeleteMapping(path = "/**", consumes = MediaType.ALL_VALUE)
-    public Response deleteEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
+    public Response deleteEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws Exception {
         return process(ownerId, httpServletRequest);
     }
 

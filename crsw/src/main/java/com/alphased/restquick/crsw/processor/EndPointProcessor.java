@@ -6,20 +6,24 @@ import com.alphased.restquick.crsw.filter.AuthorizationFilter;
 import com.alphased.restquick.crsw.model.Response;
 import com.alphased.restquick.crsw.model.WorkerAuthorizationInformation;
 import com.alphased.restquick.crsw.util.ResponseDispatcher;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.http.HttpStatus;
+import org.apache.logging.log4j.util.TriConsumer;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 @Component
@@ -27,6 +31,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EndPointProcessor {
 
+    // available operation methods.
     public final static String GET = "GET";
     public final static String POST = "POST";
     public final static String PUT = "PUT";
@@ -35,33 +40,28 @@ public class EndPointProcessor {
     private final CRSWContainer crswContainer;
     private final AuthorizationFilter authorizationFilter;
 
-    public Response apply(String ownerId, HttpServletRequest httpServletRequest) throws CRSWException {
+    private final JsonNodeFactory jsonNodeFactory = JsonNodeFactory.withExactBigDecimals(false);
+
+    public Response apply(String ownerId, HttpServletRequest httpServletRequest) throws Exception {
         checkOwnerId(ownerId);
         String requestPath = httpServletRequest.getRequestURI().substring(ownerId.length() + 5);
         String method = httpServletRequest.getMethod();
+        JsonNode allVariables = new ObjectNode(jsonNodeFactory);
         OpenAPI openAPI = crswContainer.getOpenAPI();
-
-        if (checkAuthorization())
-            return ResponseDispatcher.failureResponse(HttpStatus.UNAUTHORIZED, null, new UnAuthorizedException());
-
         Operation operation = findOperation(requestPath, method, openAPI);
-        StrategyMapping.STRATEGY.get(method).accept(operation, httpServletRequest);
+        preHandleRequest(allVariables, openAPI, operation);
+        handleRequest(httpServletRequest, method, operation, allVariables);
         // TODO: DoAction for operation. Response Type will be String and Json Format.
-
-        // TODO: checkResponse method will be create there also comparing with operation response modal.
-
         Map body = Map.of("asd", "asd");
+        // TODO: checkResponse method will be create there also comparing with operation response modal.
+        postHandleRequest(body, method, operation, openAPI.getComponents().getSchemas());
         return ResponseDispatcher.successResponse(body);
     }
 
-    private boolean checkAuthorization() throws OutdoorAuthFailedException {
-        WorkerAuthorizationInformation workerAuthorizationInformation = crswContainer.getWorkerAuthorizationInformation();
-        if (workerAuthorizationInformation.isHasAuth()) {
-            if (!checkAuth(workerAuthorizationInformation)) {
-                return true;
-            }
+    private void checkOwnerId(String ownerId) throws DifferentOwnerIdException {
+        if (crswContainer.getWorkerInformation().getOwnerId().equals(ownerId)) {
+            throw new DifferentOwnerIdException();
         }
-        return false;
     }
 
     private Operation findOperation(String requestPath, String method, OpenAPI openAPI) throws NotSupportedMethodException, OperationNotFoundException {
@@ -90,52 +90,85 @@ public class EndPointProcessor {
         return operation;
     }
 
+    private void preHandleRequest(JsonNode allVariables, OpenAPI openAPI, Operation operation) throws UnAuthorizedException {
+        checkSecurity(openAPI.getSecurity(), operation.getSecurity());
+        checkOutdoorAuthorization(allVariables);
+    }
+
+    private void handleRequest(HttpServletRequest httpServletRequest, String method, Operation operation, JsonNode allVariables) {
+        MethodStrategyMapping.STRATEGY.get(method).accept(operation, httpServletRequest, allVariables);
+    }
+
+    private void postHandleRequest(Object body, String method, Operation operation, Map<String, Schema> schemas) {
+    }
+
+    private void checkSecurity(List<SecurityRequirement> openAPISecurity, List<SecurityRequirement> operationSecurity) {
+    }
+
+    private void checkOutdoorAuthorization(JsonNode allVariables) throws UnAuthorizedException {
+        WorkerAuthorizationInformation workerAuthorizationInformation = crswContainer.getWorkerAuthorizationInformation();
+        if (workerAuthorizationInformation.isHasAuth()) {
+            try {
+                if (!(checkAuth(workerAuthorizationInformation))) {
+                    throw new UnAuthorizedException();
+                }
+            } catch (OutdoorAuthFailedException e) {
+                throw new UnAuthorizedException();
+            }
+        }
+    }
+
     private boolean checkAuth(WorkerAuthorizationInformation workerAuthorizationInformation) throws OutdoorAuthFailedException {
         return authorizationFilter.apply(workerAuthorizationInformation);
     }
 
-    private void checkOwnerId(String ownerId) throws DifferentOwnerIdException {
-        if (crswContainer.getWorkerInformation().getOwnerId().equals(ownerId)) {
-            throw new DifferentOwnerIdException();
-        }
-    }
-
-    private static class StrategyMapping {
-
-        public static Map<String, BiConsumer<Operation, HttpServletRequest>> STRATEGY = new HashMap<>();
+    private static class MethodStrategyMapping {
+        public static Map<String, TriConsumer<Operation, HttpServletRequest, JsonNode>> STRATEGY = new HashMap<>();
 
         static {
-            STRATEGY.put(GET, StrategyMapping::doCommon);
-            STRATEGY.put(DELETE, StrategyMapping::doCommon);
-            STRATEGY.put(POST, (operation, httpServletRequest) -> {
-                doCommon(operation, httpServletRequest);
-                checkAndDeclareRequestBody(operation.getRequestBody(), httpServletRequest);
+            STRATEGY.put(GET, MethodStrategyMapping::doCommon);
+            STRATEGY.put(DELETE, MethodStrategyMapping::doCommon);
+            STRATEGY.put(POST, (operation, httpServletRequest, allVariables) -> {
+                doCommon(operation, httpServletRequest, allVariables);
+                checkAndDeclareRequestBody(operation.getRequestBody(), httpServletRequest, allVariables);
             });
-            STRATEGY.put(PUT, (operation, httpServletRequest) -> {
-                doCommon(operation, httpServletRequest);
-                checkAndDeclareRequestBody(operation.getRequestBody(), httpServletRequest);
+            STRATEGY.put(PUT, (operation, httpServletRequest, allVariables) -> {
+                doCommon(operation, httpServletRequest, allVariables);
+                checkAndDeclareRequestBody(operation.getRequestBody(), httpServletRequest, allVariables);
             });
         }
 
-        private static void checkAndDeclareRequestBody(RequestBody requestBody, HttpServletRequest httpServletRequest) {
+        private static void checkAndDeclareRequestBody(RequestBody requestBody, HttpServletRequest httpServletRequest, JsonNode allVariables) {
         }
 
-        private static void doCommon(Operation operation, HttpServletRequest httpServletRequest) {
-            checkAndDeclareHeaders(operation.getParameters().stream().filter(parameter -> parameter.getIn().equals("header")).collect(Collectors.toList()), httpServletRequest);
-            checkAndDeclarePath(operation.getParameters().stream().filter(parameter -> parameter.getIn().equals("path")).collect(Collectors.toList()), httpServletRequest);
-            checkAndDeclareQueryParams(operation.getParameters().stream().filter(parameter -> parameter.getIn().equals("query")).collect(Collectors.toList()), httpServletRequest);
+        private static void doCommon(Operation operation, HttpServletRequest httpServletRequest, JsonNode allVariables) {
+            checkAndDeclareHeaders(operation.getParameters().stream().filter(parameter -> parameter.getIn().equals("header")).collect(Collectors.toList()), httpServletRequest, allVariables);
+            checkAndDeclarePath(operation.getParameters().stream().filter(parameter -> parameter.getIn().equals("path")).collect(Collectors.toList()), httpServletRequest, allVariables);
+            checkAndDeclareQueryParams(operation.getParameters().stream().filter(parameter -> parameter.getIn().equals("query")).collect(Collectors.toList()), httpServletRequest, allVariables);
         }
 
-        private static void checkAndDeclareQueryParams(List<Parameter> query, HttpServletRequest httpServletRequest) {
-            //TODO kullanılacak olan queryParamsları, header json altına al.
+        private static void checkAndDeclareQueryParams(List<Parameter> query, HttpServletRequest httpServletRequest, JsonNode allVariables) {
+            /**
+             * QueryParams karşılaştırması yap.
+             * Auth kontrolü varsa eğer eşleşmeyi kontrol et.
+             * Bütün headerları key, value şeklinde sakla.
+             */
         }
 
-        private static void checkAndDeclarePath(List<Parameter> path, HttpServletRequest httpServletRequest) {
-            //TODO kullanılacak olan PathVariableri, pathVariable json altına al.
+        private static void checkAndDeclarePath(List<Parameter> path, HttpServletRequest httpServletRequest, JsonNode allVariables) {
+            /**
+             * Path variable karşılaştırması yap.
+             * Auth kontrolü varsa eğer eşleşmeyi kontrol et.
+             * Bütün headerları key, value şeklinde sakla.
+             */
         }
 
-        private static void checkAndDeclareHeaders(List<Parameter> header, HttpServletRequest httpServletRequest) {
-            //TODO kullanılacak olan headerları, header json altına al.
+        private static void checkAndDeclareHeaders(List<Parameter> header, HttpServletRequest httpServletRequest, JsonNode allVariables) {
+            /**
+             * Header karşılaştırması yap.
+             * Auth kontrolü varsa eğer eşleşmeyi kontrol et.
+             * Bütün headerları key, value şeklinde sakla.
+             */
         }
     }
 }
