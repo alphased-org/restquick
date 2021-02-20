@@ -49,13 +49,13 @@ public class CustomErrorController extends AbstractErrorController {
         if (ex == null) {
             ex = new RuntimeException(String.valueOf(request.getAttribute(RequestDispatcher.ERROR_MESSAGE)));
         }
-        if(ex instanceof NestedServletException && ex.getCause() instanceof Exception) {
+        if (ex instanceof NestedServletException && ex.getCause() instanceof Exception) {
             ex = (Exception) ex.getCause();
         }
         if (ex instanceof OperationNotFoundException && code != 404) {
             code = 404;
         }
-        Response response = ResponseDispatcher.failureResponse(HttpStatus.valueOf(code), null, ex);
+        Response response = ResponseDispatcher.failureResponse(HttpStatus.valueOf(code), ex, null);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         return new ResponseEntity<>(response, headers, HttpStatus.OK);

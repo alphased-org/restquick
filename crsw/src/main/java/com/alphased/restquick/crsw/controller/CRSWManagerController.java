@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/manager")
@@ -22,7 +20,7 @@ public class CRSWManagerController {
 
     @GetMapping(path = "/apiDetails/get", produces = MediaType.APPLICATION_JSON_VALUE)
     public Response getContainerDetails() throws Exception {
-        return ResponseDispatcher.successResponse(JsonUtils.mergedObjectSerialize(crswContainer.getOpenAPI(), crswContainer.getWorkerAuthorizationInformation()));
+        return ResponseDispatcher.successResponse(JsonUtils.mergedObjectSerializeToJsonNode(crswContainer.getOpenAPI(), crswContainer.getWorkerAuthorizationInformation()));
     }
 
     @PostMapping(path = "/apiDetails/reload", produces = MediaType.APPLICATION_JSON_VALUE)

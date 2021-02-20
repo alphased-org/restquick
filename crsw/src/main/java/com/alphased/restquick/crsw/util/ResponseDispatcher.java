@@ -1,6 +1,8 @@
 package com.alphased.restquick.crsw.util;
 
 import com.alphased.restquick.crsw.model.Response;
+import com.alphased.restquick.utils.JsonUtils;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.http.HttpStatus;
@@ -37,6 +39,7 @@ public class ResponseDispatcher {
 
     @SneakyThrows
     private static Response applyStrategy(InternalResponse internalResponse) {
+        internalResponse.setBody(convertBody(internalResponse.body));
         return statusStrategyMap.getOrDefault(Class.forName(internalResponse.getClass().getName()), (_internalResponse) -> Response.successResponseBuilder().body(internalResponse.getBody()).build()).apply(internalResponse);
     }
 
@@ -50,7 +53,7 @@ public class ResponseDispatcher {
         return applyStrategy(successResponse);
     }
 
-    public static Response failureResponse(HttpStatus httpStatus, @Nullable Object body, @Nullable Exception e) {
+    public static Response failureResponse(HttpStatus httpStatus, @Nullable Exception e, @Nullable Object body) {
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
         FailureResponse failureResponse = FailureResponse.builder()
                 .exceptionType(e.getClass().getName())
@@ -60,6 +63,24 @@ public class ResponseDispatcher {
                 .code(httpStatus.value())
                 .build();
         return applyStrategy(failureResponse);
+    }
+
+    private static Object convertBody(Object body) {
+        if (body instanceof ObjectNode) {
+            return body;
+        } else if (body instanceof String) {
+            try {
+                return JsonUtils.jsonNodeCreator((String) body);
+            } catch (Exception exception) {
+                return body;
+            }
+        } else {
+            try {
+                return JsonUtils.serializeToJsonNode(body);
+            } catch (Exception exception) {
+                return body;
+            }
+        }
     }
 
     @EqualsAndHashCode(callSuper = true)

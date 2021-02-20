@@ -3,7 +3,6 @@ package com.alphased.restquick.utils;
 import com.alphased.restquick.exception.JsonUtilsException;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.SerializableString;
 import com.fasterxml.jackson.core.io.CharacterEscapes;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -33,26 +32,26 @@ public class JsonUtils {
         return serialize(deserialize(json, valueType));
     }
 
-    public static String mergedObjectSerialize(Pair<String, Object>... keyValues) throws Exception {
+    public static JsonNode mergedObjectSerializeToJsonNode(Pair<String, Object>... keyValues) throws Exception {
         HashMap<String, Object> mergedObject = new HashMap<>();
         Arrays.asList(keyValues).forEach(pair -> {
             Assert.notNull(pair.getKey(), "Key cannot be null.");
             Assert.notNull(pair.getValue(), "Value cannot be null.");
             mergedObject.put(pair.getKey(), pair.getValue());
         });
-        return serialize(mergedObject);
+        return serializeToJsonNode(mergedObject);
     }
 
-    public static String mergedObjectSerialize(Object... values) throws Exception {
+    public static JsonNode mergedObjectSerializeToJsonNode(Object... values) throws Exception {
         if (values.length > 1) {
             HashMap<String, Object> mergedObject = new HashMap<>();
             Arrays.asList(values).forEach(object -> {
                 Assert.notNull(object, "Value cannot be null.");
                 mergedObject.put(StringUtils.uncapitalize(object.getClass().getSimpleName()), object);
             });
-            return serialize(mergedObject);
+            return serializeToJsonNode(mergedObject);
         } else {
-            return serialize(values[0]);
+            return serializeToJsonNode(values[0]);
         }
     }
 
@@ -64,6 +63,20 @@ public class JsonUtils {
         String json = null;
         try {
             json = mapper.writeValueAsString(value);
+        } catch (IOException e) {
+            throw new JsonUtilsException(e.getMessage());
+        }
+        return json;
+    }
+
+    public static JsonNode serializeToJsonNode(Object value) throws Exception {
+        Assert.notNull(value, "value cannot be null.");
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.getFactory().setCharacterEscapes(new HTMLCharacterEscapes());
+        mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+        JsonNode json = null;
+        try {
+            json = mapper.readTree(serialize(value));
         } catch (IOException e) {
             throw new JsonUtilsException(e.getMessage());
         }

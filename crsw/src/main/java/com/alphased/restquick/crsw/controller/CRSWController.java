@@ -1,43 +1,40 @@
 package com.alphased.restquick.crsw.controller;
 
-import com.alphased.restquick.crsw.exception.CRSWException;
 import com.alphased.restquick.crsw.model.Response;
 import com.alphased.restquick.crsw.processor.EndPointProcessor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
-
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/{ownerId}/api")
+@RequestMapping("/generated")
 public class CRSWController {
 
     private final EndPointProcessor endPointProcessor;
 
-    private Response process(String ownerId, HttpServletRequest httpServletRequest) throws Exception {
-        return endPointProcessor.apply(ownerId, httpServletRequest);
+    private Response process() throws Exception {
+        return endPointProcessor.apply();
     }
 
     @GetMapping(path = "/**", consumes = MediaType.ALL_VALUE)
-    public Response getEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws Exception {
-        return process(ownerId, httpServletRequest);
+    public Response getEP() throws Exception {
+        return process();
     }
 
     @PutMapping(path = "/**", consumes = MediaType.ALL_VALUE)
-    public Response putEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws Exception {
-        return process(ownerId, httpServletRequest);
+    public Response putEP() throws Exception {
+        return process();
     }
 
     @PostMapping(path = "/**", consumes = MediaType.ALL_VALUE)
-    public Response postEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws Exception {
-        return process(ownerId, httpServletRequest);
+    public Response postEP() throws Exception {
+        return process();
     }
 
     @DeleteMapping(path = "/**", consumes = MediaType.ALL_VALUE)
-    public Response deleteEP(@PathVariable String ownerId, HttpServletRequest httpServletRequest) throws Exception {
-        return process(ownerId, httpServletRequest);
+    public Response deleteEP() throws Exception {
+        return process();
     }
 
 }

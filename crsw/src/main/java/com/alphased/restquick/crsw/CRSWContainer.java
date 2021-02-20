@@ -45,20 +45,12 @@ public class CRSWContainer {
                 "    title: New API\n" +
                 "    version: 1.0.0\n" +
                 "    description: A brand new API with no content.  Go nuts!\n" +
-                "servers:\n" +
-                "    -\n" +
-                "        url: 'http://localhost:8080'\n" +
-                "        description: ''\n" +
                 "paths:\n" +
-                "    /personTest:\n" +
-                "        servers:\n" +
-                "            -\n" +
-                "                url: 'localhost:8080'\n" +
-                "                description: ''\n" +
+                "    /seljukeGames:\n" +
                 "        get:\n" +
                 "            parameters:\n" +
                 "                -\n" +
-                "                    name: id\n" +
+                "                    name: seljukeId\n" +
                 "                    description: ''\n" +
                 "                    schema:\n" +
                 "                        type: string\n" +
@@ -69,21 +61,12 @@ public class CRSWContainer {
                 "                    content:\n" +
                 "                        application/json:\n" +
                 "                            schema:\n" +
-                "                                $ref: '#/components/schemas/Person'\n" +
+                "                                $ref: '#/components/schemas/games'\n" +
                 "components:\n" +
                 "    schemas:\n" +
-                "        Person:\n" +
-                "            title: Root Type for Person\n" +
+                "        games:\n" +
                 "            description: ''\n" +
-                "            type: object\n" +
-                "            properties:\n" +
-                "                name:\n" +
-                "                    type: string\n" +
-                "                lastname:\n" +
-                "                    type: string\n" +
-                "            example:\n" +
-                "                name: mustafa\n" +
-                "                lastname: köse").getOpenAPI();
+                "            type: object").getOpenAPI();
     }
 
     public WorkerInformation getWorkerInformation() {
