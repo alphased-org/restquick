@@ -23,12 +23,13 @@ public class ResponseDispatcher {
     static {
         statusStrategyMap.put(SuccessResponse.class, (internalResponse) -> {
             SuccessResponse successResponse = (SuccessResponse) internalResponse;
-            return Response.successResponseBuilder().body(successResponse.getBody()).build();
+            return Response.successResponseBuilder().body(successResponse.getBody()).bodyType(successResponse.getBodyType()).build();
         });
         statusStrategyMap.put(FailureResponse.class, (internalResponse) -> {
             FailureResponse failureResponse = (FailureResponse) internalResponse;
             return Response.failedResponseBuilder()
                     .body(failureResponse.getBody())
+                    .bodyType(failureResponse.getBodyType())
                     .code(failureResponse.getCode())
                     .failedMessage(failureResponse.getFailedMessage())
                     .exceptionType(failureResponse.getExceptionType())
@@ -39,7 +40,7 @@ public class ResponseDispatcher {
 
     @SneakyThrows
     private static Response applyStrategy(InternalResponse internalResponse) {
-        internalResponse.setBody(convertBody(internalResponse.body));
+        convertBody(internalResponse);
         return statusStrategyMap.getOrDefault(Class.forName(internalResponse.getClass().getName()), (_internalResponse) -> Response.successResponseBuilder().body(internalResponse.getBody()).build()).apply(internalResponse);
     }
 
@@ -65,20 +66,31 @@ public class ResponseDispatcher {
         return applyStrategy(failureResponse);
     }
 
-    private static Object convertBody(Object body) {
-        if (body instanceof ObjectNode) {
-            return body;
-        } else if (body instanceof String) {
-            try {
-                return JsonUtils.jsonNodeCreator((String) body);
-            } catch (Exception exception) {
-                return body;
-            }
-        } else {
-            try {
-                return JsonUtils.serializeToJsonNode(body);
-            } catch (Exception exception) {
-                return body;
+    private static void convertBody(InternalResponse internalResponse) {
+        Object body = internalResponse.getBody();
+        if(body != null) {
+            if (body instanceof ObjectNode) {
+                internalResponse.setBody(body);
+                internalResponse.setBodyType(Response.BodyType.JSON);
+            } else if (body instanceof Number) {
+                internalResponse.setBody(body);
+                internalResponse.setBodyType(Response.BodyType.NUMBER);
+            } else if (body instanceof String) {
+                try {
+                    internalResponse.setBody(JsonUtils.jsonNodeCreator((String) body));
+                    internalResponse.setBodyType(Response.BodyType.JSON);
+                } catch (Exception exception) {
+                    internalResponse.setBody(body);
+                    internalResponse.setBodyType(Response.BodyType.TEXT);
+                }
+            } else {
+                try {
+                    internalResponse.setBody(JsonUtils.serializeToJsonNode(body));
+                    internalResponse.setBodyType(Response.BodyType.JSON);
+                } catch (Exception exception) {
+                    internalResponse.setBody(body);
+                    internalResponse.setBodyType(Response.BodyType.UNKNOWN);
+                }
             }
         }
     }
@@ -104,6 +116,7 @@ public class ResponseDispatcher {
     private static abstract class InternalResponse {
         private int code;
         private Object body;
+        private Response.BodyType bodyType;
         private String requestPath;
     }
 }

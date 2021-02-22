@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
@@ -62,8 +63,8 @@ public class CRSWFilter extends OncePerRequestFilter {
         try {
             beforeRequest(request, response, operation);
             filterChain.doFilter(request, response);
-        } finally {
             afterRequest(request, response, operation);
+        } finally {
             response.copyBodyToResponse();
         }
     }
@@ -93,30 +94,31 @@ public class CRSWFilter extends OncePerRequestFilter {
         }
     }
 
-
     private Operation findOperation(String requestPath, String method, OpenAPI openAPI) throws NotSupportedMethodException, OperationNotFoundException {
         Operation operation = null;
-        try {
-            if (method.equals(GET)) {
-                operation = openAPI.getPaths().get(requestPath).getGet();
-            } else if (method.equals(PUT)) {
-                operation = openAPI.getPaths().get(requestPath).getPut();
-            } else if (method.equals(POST)) {
-                operation = openAPI.getPaths().get(requestPath).getPost();
-            } else if (method.equals(DELETE)) {
-                operation = openAPI.getPaths().get(requestPath).getDelete();
-            } else {
-                throw new NotSupportedMethodException();
+        PathItem pathItem = openAPI.getPaths().get(requestPath);
+        if (pathItem != null) {
+            switch (method) {
+                case GET:
+                    operation = pathItem.getGet();
+                    break;
+                case PUT:
+                    operation = pathItem.getPut();
+                    break;
+                case POST:
+                    operation = pathItem.getPost();
+                    break;
+                case DELETE:
+                    operation = pathItem.getDelete();
+                    break;
+                default:
+                    throw new NotSupportedMethodException();
             }
-        } catch (Exception e) {
-            if (e instanceof NotSupportedMethodException) {
-                throw e;
-            }
-            log.debug(e.getMessage());
         }
         if (operation == null) {
             throw new OperationNotFoundException();
         }
+        log.debug("Endpoint successfully matched. path: {}", requestPath);
         return operation;
     }
 

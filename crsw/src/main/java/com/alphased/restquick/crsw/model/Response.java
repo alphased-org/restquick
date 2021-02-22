@@ -13,31 +13,31 @@ public class Response {
     private String failedMessage;
     private int code;
     private Object body;
-    private String bodyType;
+    private BodyType bodyType;
     private String exceptionType;
     private String requestPath;
 
     @Builder(builderMethodName = "successResponseBuilder", builderClassName = "SuccessResponseBuilder")
-    public Response(@Nullable Object body) {
+    public Response(@Nullable Object body, @Nullable BodyType bodyType) {
         this.success = true;
         this.code = HttpStatus.OK.value();
         this.body = body;
-        if (body != null) {
-            this.bodyType = body.getClass().getSimpleName();
-        }
+        this.bodyType = bodyType;
     }
 
     @Builder(builderMethodName = "failedResponseBuilder", builderClassName = "FailedResponseBuilder")
-    public Response(int code, String failedMessage, @Nullable Object body, String exceptionType, String requestPath) {
+    public Response(int code, String failedMessage, @Nullable Object body, @Nullable BodyType bodyType, String exceptionType, String requestPath) {
         this.success = false;
         this.code = code;
         this.failedMessage = failedMessage;
         this.body = body;
         this.exceptionType = exceptionType;
         this.requestPath = requestPath;
-        if (body != null) {
-            this.bodyType = body.getClass().getSimpleName();
-        }
+        this.bodyType = bodyType;
+    }
+
+    public enum BodyType {
+        TEXT, JSON, NUMBER, UNKNOWN;
     }
 
 }
